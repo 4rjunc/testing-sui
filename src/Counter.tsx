@@ -5,7 +5,7 @@ import {
   useSuiClientQuery,
 } from "@mysten/dapp-kit";
 import type { SuiObjectData } from "@mysten/sui/client";
-import { Transaction } from "@mysten/sui/transactions";
+import { coinWithBalance, Transaction } from "@mysten/sui/transactions";
 import { Button, Flex, Heading, Text } from "@radix-ui/themes";
 import { useNetworkVariable } from "./networkConfig";
 import { useState } from "react";
@@ -38,14 +38,19 @@ export function Counter({ id }: { id: string }) {
     console.log("new_risk tx", tx);
 
     try {
-      const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(collateralAmount)]);
+      //const [coin] = tx.splitCoins(tx.gas, [tx.pure.u64(collateralAmount)]);
+      const coin = coinWithBalance({ balance: collateralAmount });
       console.log("new_risk coin", coin);
 
-      tx.setGasBudget(500000000);
+      // tx.setGasBudget(500000000);
       tx.moveCall({
         target:
-          "0xb2087842194cfe22aa67f2ffebc43d27b83338e175ab13965b5ad032d8ab73ed::unfold_pkg::new_risk",
-        arguments: [tx.pure.u64(riskCoverage), tx.pure.u64(totalShares), coin],
+          "0xb2087842194cfe22aa67f2ffebc43d27b83338e175ab13965b5ad032d8ab73ed::contract::new_risk",
+        arguments: [
+          tx.pure.u64(riskCoverage),
+          tx.pure.u64(totalShares),
+          tx.object(coin),
+        ],
       });
 
       signAndExecute(
@@ -59,6 +64,7 @@ export function Counter({ id }: { id: string }) {
               .then(async () => {
                 await refetch();
                 setWaitingForTxn("");
+                console.log(`Transaction successful: ${tx.digest}`);
               });
           },
           onError: (error) => {
